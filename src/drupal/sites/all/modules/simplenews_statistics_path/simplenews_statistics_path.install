@@ -1,0 +1,84 @@
+<?php
+// $Id: simplenews_statistics_path.install,v 1.1.2.2 2009/07/29 20:11:51 jrglasgow Exp $
+
+/**
+ * Install functions
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function simplenews_statistics_path_schema() {
+  $schema['simplenews_statistics_path_paths'] = array(
+    'description' => t('TODO: please describe this table!'),
+    'fields' => array(
+      'mail' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '300',
+        'not null' => TRUE,
+      ),
+      'path_id' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '32',
+        'not null' => TRUE,
+      ),
+      'url' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '500',
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'mail' => array('mail', 'path_id')
+    ),
+  );
+  $schema['simplenews_statistics_path_path_clicks'] = array(
+    'description' => t('TODO: please describe this table!'),
+    'fields' => array(
+      'path_id' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '32',
+        'not null' => TRUE,
+      ),
+      'path' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'varchar',
+        'length' => '300',
+        'not null' => TRUE,
+      ),
+      'time' => array(
+        'description' => t('TODO: please describe this field!'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'path_id' => array('path_id', 'time')
+    ),
+  );
+  return $schema;
+}
+/**
+ * Implementation of hook_install().
+ */
+function simplenews_statistics_path_install() {
+  drupal_install_schema('simplenews_statistics_path');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ *.
+ */
+function simplenews_statistics_path_uninstall() {
+  drupal_uninstall_schema('simplenews_statistics_path');
+}
+

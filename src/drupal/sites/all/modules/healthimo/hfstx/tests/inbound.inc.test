@@ -1,0 +1,58 @@
+<?php
+/**
+ * @file
+ * Test the hfstx module
+ */
+
+class HfstxInboundTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'hfstx.inbound.inc',
+                'description' => 'inbound.inc tests',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('hfstx');
+    }
+
+    function testEnrollmentCheck() {
+        $user = new StdClass();
+        $user->profile_keyword_healthy = 1;
+        $user->profile_keyword_bcbs = 1;
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertTrue($result);
+        $user->profile_keyword_healthy = 1;
+        $user->profile_keyword_bcbs = 0;
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertTrue($result);
+        $user->profile_keyword_healthy = 0;
+        $user->profile_keyword_bcbs = 1;
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertTrue($result);
+        $user->profile_keyword_healthy = 0;
+        $user->profile_keyword_bcbs = 0;
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertFalse($result);
+        $user->profile_keyword_healthy = '0';
+        $user->profile_keyword_bcbs = '0';
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertFalse($result);
+        $user->profile_keyword_healthy = '1';
+        $user->profile_keyword_bcbs = '1';
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertTrue($result);
+        $user->profile_keyword_healthy = '1';
+        $user->profile_keyword_bcbs = '0';
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertTrue($result);
+        $user->profile_keyword_healthy = '0';
+        $user->profile_keyword_bcbs = '1';
+        $result = hfstx_is_enrolled_in_hfstx($user);
+        $this->assertTrue($result);
+    }
+}
+
+

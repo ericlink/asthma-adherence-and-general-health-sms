@@ -1,0 +1,4 @@
+#!/bin/bash
+#watch 'mysql -E -u root 2011_09_03_11_52_mysql_backup_oat < ./oat.review.extract.sql '
+echo "call oat_review_extract(1);" | mysql -B --raw -u root 2011_09_03_11_52_mysql_backup_oat > out
+time mysql -B --raw --skip-column-names -u root 2011_09_03_11_52_mysql_backup_oat < ./oat.review.extract.cursor.sql >> out

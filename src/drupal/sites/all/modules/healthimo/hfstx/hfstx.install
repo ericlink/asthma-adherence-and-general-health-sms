@@ -1,0 +1,119 @@
+<?php
+/**
+ * @file
+ *   Provides the (un)installation logic for the hfstx module.
+ */
+
+
+/**
+ * Implementation of hook_schema().
+ * @return the schema definition array.
+ * */
+function hfstx_schema() {
+    $schema = array();
+
+    $schema['hfstx_message_log'] = array(
+            'description' => 'Log of messages sent and received based on user and program',
+            'fields' => array(
+                    'mid' => array(
+                            'type' => 'serial',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                            'description' => 'Primary Key: sequence',
+                    ),
+                    'created' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                    ),
+                    'updated' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                    ),
+                    'processed' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                            'description' => 'Set after successful send (outbound) or successful processing (inbound)',
+                    ),
+                    'outbound' => array(
+                            'type' => 'int',
+                            'not null' => TRUE,
+                            'size' => 'tiny',
+                            'description' => '0=inbound, 1=outbound',
+                    ),
+                    'uid' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                            'description' => 'User the message is to/from',
+                    ),
+                    'program_tid' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                            'description' => 'Program taxonomy term',
+                    ),
+                    'address' => array(
+                            'type' => 'varchar',
+                            'not null' => TRUE,
+                            'length' => 255,
+                            'description' => 'Tel, email, etc message is addressed to',
+                    ),
+                    'message' => array(
+                            'type' => 'varchar',
+                            'not null' => TRUE,
+                            'length' => 6144,
+                            'description' => 'Snapshot of the actual message sent, all parms replaced etc.',
+                    ),
+                    'message_nid' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => TRUE,
+                            'description' => 'Message node id for message source content',
+                    ),
+                    'response_expected' => array(
+                            'type' => 'int',
+                            'size' => 'tiny',
+                            'description' => '0=no response expected, 1=response expected',
+                    ),
+                    'response_type_expected' => array(
+                            'type' => 'varchar',
+                            'not null' => TRUE,
+                            'length' => 255,
+                            'description' => 'Arbitrary value indicating the type of response, such as profile field, etc',
+                    ),
+                    'response_received' => array(
+                            'type' => 'int',
+                            'unsigned' => TRUE,
+                            'not null' => FALSE,
+                    ),
+            ),
+            'indexes' => array(
+                    'uid' => array('uid'),
+                    'created' => array('created'),
+            ),
+            'primary key' => array('mid'),
+    );
+
+    return $schema;
+}
+
+
+/**
+ * Implementation of hook_install().
+ */
+function hfstx_install() {
+    drupal_install_schema('hfstx');
+}
+
+
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function hfstx_uninstall() {
+    drupal_uninstall_schema('hfstx');
+}
+

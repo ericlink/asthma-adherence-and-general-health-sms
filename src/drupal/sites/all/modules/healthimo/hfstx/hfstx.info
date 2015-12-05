@@ -1,0 +1,12 @@
+name = "hfstx"
+description = "Healthy Families of South Texas (hfstx)."
+package = healthimo
+dependencies[] = sms
+dependencies[] = messaging
+dependencies[] = healthimo
+core = 6.x
+version = "6.x-1.0"
+core = "6.x"
+project = "healthimo"
+datestamp = "1271013682"
+

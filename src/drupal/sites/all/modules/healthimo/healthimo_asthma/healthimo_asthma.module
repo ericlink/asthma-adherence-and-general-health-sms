@@ -1,0 +1,95 @@
+<?php
+
+/**
+ * @file
+ * asthma functionality
+ */
+
+/**
+ * Implementation of hook_info().
+ */
+function healthimo_asthma_info() {
+    return array(
+        'healthimo_asthma' => array(
+            'name' => 'healthimo asthma module',
+        ),
+    );
+}
+
+function healthimo_asthma_menu() {
+    $items = array();
+
+    $items['admin/healthimo/asthma'] = array(
+        'title' => 'asthma',
+        'description' => 'Configure healthimo asthma',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('healthimo_asthma_admin_settings_form'),
+        'access arguments' => array('administer healthimo'),
+        'file' => 'healthimo_asthma.admin.inc',
+    );
+//    $items['admin/healthimo/enroll'] = array(
+//        'title' => 'healthimo asthma enroll',
+//        'description' => 'healthimo asthma enroll',
+//        'page callback' => 'drupal_get_form',
+//        'page arguments' => array('healthimo_asthma_admin_enroll_form'),
+//        'access arguments' => array('administer healthimo'),
+//         'file' => 'healthimo_asthma.admin.inc',
+//   );
+
+    return $items;
+}
+
+/**
+ * Turn off caching for this module, for sms incoming GET requests
+ */
+function healthimo_asthma_init() {
+    error_reporting(E_ALL | E_STRICT);
+    $GLOBALS['conf']['cache'] = FALSE;
+    module_load_include('inc', 'healthimo_asthma');
+    module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.message_log');
+    module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.inbound');
+    module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.controller.reminder');
+    module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.appointment.reminder');
+    module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.pollen.alert');
+    module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.process');
+    //module_load_include('inc', 'healthimo_asthma', 'healthimo_asthma.ozone.alert');
+}
+
+/**
+ * Implementation of hook_sms_incoming().
+ */
+//function healthimo_sms_incoming($op, $number, $message, $options = array()) {
+//
+//function healthimo_asthma_sms_incoming($op, $number, $message) {
+//    global $user;
+//    switch ($op) {
+//        case 'pre process':
+//            break;
+//        case 'process':
+//            watchdog('healthimo_asthma', 'sms_incoming.process ' . $number . ' [' . $message . ']');
+//            healthimo_asthma_process_incoming_sms($user, $number, $message);
+//            break;
+//        case 'post process':
+//            break;
+//    }
+//}
+
+/*
+ * Implementation of hook_cron().
+ */
+
+function healthimo_asthma_cron() {
+    watchdog('healthimo_asthma', 'hook_cron');
+    if (variable_get('healthimo_healthimo_asthma_cron_active', 1)) {
+        if (variable_get('healthimo_healthimo_asthma_controller_reminder_active', 1)) {
+            $usersMessaged = healthimo_asthma_send_controller_reminders();
+            watchdog('healthimo_asthma', 'hook_cron %d users messaged with controller reminders', array('%d' => $usersMessaged));
+        }
+        if (variable_get('healthimo_healthimo_asthma_appt_reminder_active', 1)) {
+            $usersMessaged = healthimo_asthma_send_appointment_reminders();
+            watchdog('healthimo_asthma', 'hook_cron %d users messaged with appointment reminders', array('%d' => $usersMessaged));
+        }
+    } else {
+        watchdog('healthimo_asthma', 'hook_cron disabled');
+    }
+}

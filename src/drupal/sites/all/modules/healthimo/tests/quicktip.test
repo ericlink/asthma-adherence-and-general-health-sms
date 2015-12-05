@@ -1,0 +1,60 @@
+<?php
+
+class HealthimoQuicktipTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'healthimo.quicktip',
+                'description' => 'Quicktip tests',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('healthimo');
+        $vocabulary = array(
+                'name' => 'Program Enrollment',
+                'multiple' => 0,
+                'required' => 0,
+                'hierarchy' => 1,
+                'relations' => 0,
+                'module' => 'healthimo',
+                'weight' => -10,
+        );
+        taxonomy_save_vocabulary($vocabulary);
+        $vocabulary = array(
+                'name' => 'SMS Keywords',
+                'multiple' => 0,
+                'required' => 0,
+                'hierarchy' => 1,
+                'relations' => 0,
+                'module' => 'healthimo',
+                'weight' => -10,
+        );
+        taxonomy_save_vocabulary($vocabulary);
+
+        $edit = array('vid' => 2, 'name' => 'myterm');
+        $status = taxonomy_save_term($edit);
+
+        $term = array(
+                'vid' => 2,
+                'name' => 'keyword',
+        );
+        taxonomy_save_term($term);
+
+
+        $term = array(
+                'name' => 'new term',
+                'vid' => 1,
+                'description' => 'my new term',
+        );
+        taxonomy_save_term($term);
+
+    }
+
+    function testSomething() {
+        $this->assertTrue(true);
+    }
+    //quick tip tests by TID, for asthma vs hfstx
+
+}

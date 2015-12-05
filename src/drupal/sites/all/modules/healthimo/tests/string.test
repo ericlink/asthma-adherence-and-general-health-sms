@@ -1,0 +1,63 @@
+<?php
+/**
+ * @file
+ * Test the hfstx module
+ */
+
+class HealthimoStringTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'healthimo.string.inc',
+                'description' => 'string manipulation helpers',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('healthimo');
+//        $permissions = array('administer google analytics');
+//        // User to set up google_analytics.
+//        $user = $this->drupalCreateUser($permissions);
+//        $this->drupalLogin($user);
+    }
+
+    function testContainsWordIgnoreCase() {
+        $this->assertTrue( healthimo_contains_word_ignore_case('a', 'a b c') );
+        $this->assertTrue( healthimo_contains_word_ignore_case('b', 'a b c') );
+        $this->assertTrue( healthimo_contains_word_ignore_case('c', 'a b c') );
+        $this->assertFalse( healthimo_contains_word_ignore_case('b', 'ab c') );
+        $this->assertFalse( healthimo_contains_word_ignore_case('b', 'a bc') );
+        $this->assertFalse( healthimo_contains_word_ignore_case('b', 'abc') );
+        $this->assertTrue( healthimo_contains_word_ignore_case('A', 'a b c') );
+        $this->assertTrue( healthimo_contains_word_ignore_case('B', 'a b c') );
+        $this->assertTrue( healthimo_contains_word_ignore_case('C', 'a b c') );
+        $this->assertFalse( healthimo_contains_word_ignore_case('B', 'ab c') );
+        $this->assertFalse( healthimo_contains_word_ignore_case('B', 'a bc') );
+        $this->assertFalse( healthimo_contains_word_ignore_case('B', 'abc') );
+    }
+
+    function testContainsIgnoreCase() {
+        $this->assertTrue( healthimo_contains_ignore_case('a', 'a b c') );
+        $this->assertTrue( healthimo_contains_ignore_case('b', 'a b c') );
+        $this->assertTrue( healthimo_contains_ignore_case('c', 'a b c') );
+        $this->assertTrue( healthimo_contains_ignore_case('b', 'ab c') );
+        $this->assertTrue( healthimo_contains_ignore_case('b', 'a bc') );
+        $this->assertTrue( healthimo_contains_ignore_case('b', 'abc') );
+        $this->assertTrue( healthimo_contains_ignore_case('A', 'a b c') );
+        $this->assertTrue( healthimo_contains_ignore_case('B', 'a b c') );
+        $this->assertTrue( healthimo_contains_ignore_case('C', 'a b c') );
+        $this->assertTrue( healthimo_contains_ignore_case('B', 'ab c') );
+        $this->assertTrue( healthimo_contains_ignore_case('B', 'a bc') );
+        $this->assertTrue( healthimo_contains_ignore_case('B', 'abc') );
+    }
+
+    function testGetNewlineDelimitedItems() {
+        $packed = "a\nb\nc\nd\n";
+        $items = healthimo_string_get_newline_delimited_items($packed);
+        $this->assertEqual(4,count($items));
+        $packed = "a\nb\nc\nd";
+        $items = healthimo_string_get_newline_delimited_items($packed);
+        $this->assertEqual(4,count($items));
+    }
+}

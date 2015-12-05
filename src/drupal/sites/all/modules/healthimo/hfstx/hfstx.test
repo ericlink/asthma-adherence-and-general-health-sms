@@ -1,0 +1,50 @@
+<?php
+/**
+ * @file
+ * Test the hfstx module
+ */
+
+class HfstxModuleHookCronTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'hfstx.module',
+                'description' => 'hook_cron, sms_incoming',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('hfstx');
+//        $permissions = array('administer google analytics');
+//        // User to set up google_analytics.
+//        $user = $this->drupalCreateUser($permissions);
+//        $this->drupalLogin($user);
+    }
+
+    function testMessageForTheFirstTime() {
+        // message log empty
+        // create user 1
+        // run cron
+        // user one now in message log w/ correct state?
+        $this->assertEqual(1, 1);
+        // x create content type table for testing
+        // Table 'healthimo.simpletest737757content_type_quicktip' doesn't exist query:
+        // hfstx_cron();
+        $this->assertEqual(1, 1);
+
+        //parent::cronRun();
+        //$this->cronRun()
+        //$this->
+//        // Check for setting page's presence.
+//        $this->drupalGet('admin/settings/googleanalytics');
+//        $this->assertRaw(t('Google Analytics account number'), '[testGoogleAnalytics]: Settings page displayed.');
+//
+//        // Check for account code validation.
+//        $edit['googleanalytics_account'] = $this->randomName(2);
+//        $this->drupalPost('admin/settings/googleanalytics', $edit, 'Save configuration');
+//        $this->assertRaw(t('A valid Google Analytics account number is case sensitive and formatted like UA-xxxxxx-x.'), '[testGoogleAnalytics]: Invalid account number validated.');
+    }
+}
+
+

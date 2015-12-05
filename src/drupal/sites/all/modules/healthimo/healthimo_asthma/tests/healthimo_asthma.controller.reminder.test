@@ -1,0 +1,56 @@
+<?php
+/**
+ * @file
+ * Test the asthma module
+ */
+
+class AsthmaControllerReminderTimeTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'healthimo_asthma.cr.inc',
+                'description' => 'controller reminder tests',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('healthimo');
+    }
+
+    function testControllerReminderTime() {
+        $user = new stdClass();
+        $user->profile_asthma_feature_controller_reminder_am_time = "0:00";
+        $user->profile_asthma_feature_controller_reminder_pm_time = "23:59";
+        $result = healthimo_asthma_need_to_send_controller_reminder($user,AM);
+        $this->assertTrue($result);
+        $result = healthimo_asthma_need_to_send_controller_reminder($user,PM);
+        $this->assertFalse($result);
+    }
+
+
+    function testControllerDateLogic() {
+        $controller_reminder_profile_time_of_day = "0:00";
+        $controller_reminder_time = healthimo_date_time_of_day_to_today_time($controller_reminder_profile_time_of_day, 'America/New_York');
+        $now = healthimo_date_get_local_time(time(), 'America/Chicago');
+        $this->assertTrue(healthimo_date_diff($controller_reminder_time, $now) >= 0);
+        $last_sent_in_local_time = healthimo_date_get_local_time(time(), 'America/Chicago' );
+        $this->assertFalse( healthimo_date_diff($last_sent_in_local_time, $controller_reminder_time ) > 0);
+
+        $controller_reminder_profile_time_of_day = "23:59";
+        $controller_reminder_time = healthimo_date_time_of_day_to_today_time($controller_reminder_profile_time_of_day, 'America/New_York');
+        $now = healthimo_date_get_local_time(time(), 'America/Chicago');
+        $this->assertFalse(healthimo_date_diff($controller_reminder_time, $now) >= 0);
+        $last_sent_in_local_time = healthimo_date_get_local_time(time(), 'America/Chicago' );
+        $this->assertTrue( healthimo_date_diff($last_sent_in_local_time, $controller_reminder_time ) > 0);
+
+        $nowts = time();
+        $controller_reminder_time = healthimo_date_get_local_time($nowts, 'America/Chicago');
+        $now = healthimo_date_get_local_time($nowts, 'America/Chicago');
+        $this->assertTrue(healthimo_date_diff($controller_reminder_time, $now) == 0);
+        $last_sent_in_local_time = healthimo_date_get_local_time($nowts, 'America/Chicago' );
+        $this->assertTrue( healthimo_date_diff($last_sent_in_local_time, $controller_reminder_time ) == 0);
+    }
+
+
+}

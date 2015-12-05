@@ -1,0 +1,14 @@
+;$Id: gaservice.info,v 1.1 2009/12/11 15:56:31 skyredwang Exp $
+name = "Google Analytics Service"
+description = Google Analytics now tracks mobile websites and mobile apps so you can better measure your mobile marketing efforts. If you're optimizing content for mobile users and have created a mobile website, Google Analytics can track traffic to your mobile website from all web-enabled devices, whether or not the device runs JavaScript. This is made possible by adding a server side code snippet to your mobile website. Of course, you can still track visits to your regular website coming from high-end, Javascript enabled phones.
+package = Services - services
+dependencies[] = services
+core = 6.x
+
+
+; Information added by drupal.org packaging script on 2009-12-17
+version = "6.x-1.0-beta2"
+core = "6.x"
+project = "gaservice"
+datestamp = "1261069267"
+

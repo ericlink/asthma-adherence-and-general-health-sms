@@ -1,0 +1,522 @@
+<?php
+
+/**
+ * @file
+ * Adds support for sending SMS messages using the Club Texting gateway.
+ */
+
+/**
+ * Implementation of hook_gateway_info().
+ */
+function sms_clubtexting_gateway_info() {
+    return array(
+        'clubtexting' => array(
+            'name' => 'Club Texting',
+            'configure form' => 'sms_clubtexting_admin_form',
+            'send' => 'sms_clubtexting_send',
+            'send form' => 'sms_clubtexting_send_form',
+        ),
+    );
+}
+
+function sms_clubtexting_admin_form($configuration) {
+    $form['sms_clubtexting_balance'] = array(
+        '#type' => 'item',
+        '#title' => t('Current balance'),
+        '#value' => sms_clubtexting_balance(),
+    );
+
+    $form['sms_clubtexting_min_credits'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Credits Notification Threshold'),
+        '#description' => t('Minimum credits before notiying site admin.'),
+        '#size' => 10,
+        '#maxlength' => 10,
+        '#default_value' => $configuration['sms_clubtexting_min_credits'],
+    );
+
+    $form['sms_clubtexting_ssl'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Use SSL Encyption'),
+        '#description' => t('Drupal\'s built-in HTTP client only supports SSL on PHP 4.3 compiled with OpenSSL.'),
+        '#default_value' => $configuration['sms_clubtexting_ssl'],
+    );
+    $form['sms_clubtexting_user'] = array(
+        '#type' => 'textfield',
+        '#title' => t('User'),
+        '#description' => t('The username of your Club Texting account.'),
+        '#size' => 40,
+        '#maxlength' => 255,
+        '#default_value' => $configuration['sms_clubtexting_user'],
+    );
+    $form['sms_clubtexting_password'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Password'),
+        '#description' => t('The current password on your Club Texting account.'),
+        '#size' => 30,
+        '#maxlength' => 64,
+        '#default_value' => $configuration['sms_clubtexting_password'],
+    );
+
+    return $form;
+}
+
+/**
+ * Validates the submission of the configuration form.
+ */
+function sms_clubtexting_admin_form_validate($form, &$form_state) {
+    $result = sms_clubtexting_command('auth', array(), $form_state['values']);
+    if ($result['status'] < 1) {
+        form_set_error('', t('A Club Texting gateway error occured: @error.', array('@error' => $result['message'])));
+    }
+    variable_set('sms_clubtexting_session_id_timestamp', 0);
+}
+
+function sms_clubtexting_cron() {
+    date_default_timezone_set('UTC');
+    if (variable_get('sms_clubtexting_last_run_timestamp', 0) < strtotime('-15 mins')) {
+        $result = sms_clubtexting_command('getbalance');
+        $currentCredits = $result['data'];
+
+        $gateway = sms_gateways('gateway', 'clubtexting');
+        $config = $gateway['configuration'];
+        $sms_clubtexting_min_credits = $config['sms_clubtexting_min_credits'];
+
+        if (isset($currentCredits) && $currentCredits < $sms_clubtexting_min_credits) {
+            watchdog('sms_clubtexting', 'Club Texting account at %d credits', array('%d' => $currentCredits), WATCHDOG_ALERT);
+        }
+
+        variable_set('sms_clubtexting_last_run_timestamp', time());
+    }
+}
+
+/**
+ * Returns custom additions to be added to the send forms
+  function sms_clubtexting_send_form() {
+  $form['country'] = array(
+  '#type' => 'select',
+  '#title' => t('Country'),
+  '#multiple' => FALSE,
+  '#options' => sms_clubtexting_country_codes(),
+  '#default_value' => -1,
+  );
+
+  return $form;
+  }
+ */
+
+/**
+ * Callback for sending messages.
+ */
+function sms_clubtexting_send($number, $message, $options) {
+    //$number = $options['country'] . $number;
+    // if we expect a response send using express
+    $express = $options['response_expected'];
+    if (!isset($express) || !($express == 1 || $express == 0)) {
+        $express = 1;
+    }
+    watchdog('sms', 'response_expected=[' . $options['response_expected']
+            . '] $express=' . $express);
+
+    return sms_clubtexting_command(
+            'sendmsg', array('number' => $number, 'message' => $message, 'express' => $express,)
+    );
+}
+
+function sms_clubtexting_balance() {
+    $result = sms_clubtexting_command('getbalance');
+    return str_replace('Credit: ', '', $result['data']);
+}
+
+/**
+ * Executes a command using the Club Texting API
+ */
+function sms_clubtexting_command($command = 'auth', $data = array(), $config = NULL) {
+    $gateway = sms_gateways('gateway', 'clubtexting');
+
+    if ($config == NULL) {
+        $config = $gateway['configuration'];
+    }
+
+    if ($config['sms_clubtexting_ssl']) {
+        $scheme = 'https';
+    } else {
+        $scheme = 'http';
+    }
+
+
+    $query = 'user=' . $config['sms_clubtexting_user'] . '&pass=' . $config['sms_clubtexting_password'];
+
+    switch ($command) {
+        case 'auth':
+            $url = 'app.clubtexting.com/api/credits/check/';
+            break;
+        case 'sendmsg':
+            $url = 'app.clubtexting.com/api/sending/';
+            // Check if the message requires unicode handling
+            if ($unicode_message = sms_clubtexting_unicode($data['message'])) {
+                $message = $unicode_message;
+            } else {
+                $message = drupal_urlencode($data['message']);
+            }
+            // express must be true to get replies
+            //  1/0
+            $query = $query . '&express=' . $data['express'] . '&subject=&phonenumber=' . $data['number'] . '&message=' . $message;
+            break;
+        case 'getbalance':
+            $url = 'app.clubtexting.com/api/credits/check/';
+            break;
+    }
+
+    // Run the command
+    watchdog('sms', 'Running command ' . $scheme . '://' . $url . '?' . $query);
+    $http_result = drupal_http_request($scheme . '://' . $url . '?' . $query);
+
+    // Check for HTTP errors
+    if (isset($http_result->error) && $http_result->error) {
+        return array('status' => FALSE, 'message' => t('An error occured during the HTTP request: @error', array('@error' => $http_result->error)));
+    }
+
+    if ($http_result->data) {
+        // Check for Club Texting errors
+        if ($http_result->data == -104) {
+            //opted out
+            $errors = sms_clubtexting_error_codes();
+            $result = array('status' => TRUE, 'message' => $http_result->data . " " . $errors[$http_result->data]);
+        } else if ($http_result->data < 0) {
+            $errors = sms_clubtexting_error_codes();
+            $result = array('status' => FALSE, 'message' => $http_result->data . " " . $errors[$http_result->data]);
+        } elseif ($command == 'auth') {
+            // Add Club Texting session ID to result array.
+            list($status, $sid) = explode(': ', $http_result->data);
+            $result = array('status' => TRUE, 'sid' => $sid);
+        } else {
+            $result = array('status' => TRUE, 'data' => $http_result->data);
+        }
+    }
+    return $result;
+}
+
+function sms_clubtexting_get_session_id() {
+    if (variable_get('sms_clubtexting_session_id_timestamp', 0) < strtotime('-10 mins')) {
+        if ($result = sms_clubtexting_command()) {
+            if ($result['status']) {
+                variable_set('sms_clubtexting_session_id', $result['sid']);
+                variable_set('sms_clubtexting_session_id_timestamp', time());
+                watchdog('sms', 'Club Texting session ID refreshed: %sid', array('%sid' => $result['sid']));
+            }
+        }
+    }
+
+    return variable_get('sms_clubtexting_session_id', 0);
+}
+
+/**
+ * Returns an array of error codes and messages that are generated by the Club Texting gateway
+ */
+function sms_clubtexting_error_codes() {
+    return array(
+        1 => 'Message Sent',
+        -1 => 'Invalid user or password (make sure your account is API allowed)',
+        -2 => 'Credit Limit Reached',
+        -5 => 'Local Opt Out (the recipient/number is on your opt-out list.)',
+        -7 => 'Invalid Message (message exceeds 130 characters (160 for express) or contains single or double quotes or other invalid characters)',
+        -104 => 'Globally Opted Out Phone Number (the phone number has been opted out from all messages sent from our short code). To opt this number in please text DEMO or Your Keyword to 25827 using that phone.',
+        -106 => 'Incorrectly Formatted Phone Number (number must be 10 digits)',
+        -10 => 'Unknown Error (please contact our support dept.)',
+    );
+}
+
+function sms_clubtexting_country_codes() {
+    return array(
+        93 => "Afghanistan",
+        355 => "Albania",
+        213 => "Algeria",
+        376 => "Andorra",
+        244 => "Angola",
+        1264 => "Anguilla",
+        1268 => "Antigua & Barbuda",
+        54 => "Argentina",
+        374 => "Armenia",
+        297 => "Aruba",
+        61 => "Australia",
+        43 => "Austria",
+        994 => "Azerbaijan",
+        1242 => "Bahamas",
+        973 => "Bahrain",
+        880 => "Bangladesh",
+        1246 => "Barbados",
+        375 => "Belarus",
+        32 => "Belgium",
+        501 => "Belize",
+        229 => "Benin",
+        1441 => "Bermuda",
+        975 => "Bhutan",
+        591 => "Bolivia",
+        387 => "Bosnia-Herzegovina",
+        267 => "Botswana",
+        55 => "Brazil",
+        1284 => "British Virgin Islands",
+        673 => "Brunei",
+        359 => "Bulgaria",
+        226 => "Burkina Faso",
+        257 => "Burundi",
+        855 => "Cambodia",
+        237 => "Cameroon",
+        34 => "Canary Islands",
+        238 => "Cape Verde",
+        1345 => "Cayman Islands",
+        236 => "Central African Republic",
+        235 => "Chad",
+        56 => "Chile",
+        86 => "China",
+        57 => "Colombia",
+        269 => "Comoros",
+        242 => "Congo",
+        243 => "Democratic Republic Congo",
+        682 => "Cook Islands",
+        385 => "Croatia",
+        53 => "Cuba",
+        357 => "Cyprus",
+        420 => "Czech Republic",
+        45 => "Denmark",
+        253 => "Djibouti",
+        1767 => "Dominica",
+        670 => "East Timor",
+        593 => "Ecuador",
+        20 => "Egypt",
+        503 => "El Salvador",
+        240 => "Equatorial Guinea",
+        372 => "Estonia",
+        251 => "Ethiopia",
+        500 => "Falkland Islands",
+        298 => "Faroe Islands",
+        679 => "Fiji",
+        358 => "Finland",
+        33 => "France",
+        594 => "French Guiana",
+        689 => "French Polynesia",
+        241 => "Gabon",
+        220 => "Gambia",
+        995 => "Georgia",
+        49 => "Germany",
+        233 => "Ghana",
+        350 => "Gibraltar",
+        881 => "Global Mobile Satellite",
+        30 => "Greece",
+        299 => "Greenland",
+        1473 => "Grenada",
+        590 => "Guadeloupe",
+        1671 => "Guam",
+        502 => "Guatemala",
+        224 => "Guinea",
+        592 => "Guyana",
+        509 => "Haiti",
+        504 => "Honduras",
+        852 => "HongKong",
+        36 => "Hungary",
+        354 => "Iceland",
+        91 => "India",
+        62 => "Indonesia",
+        98 => "Iran",
+        964 => "Iraq",
+        353 => "Ireland",
+        972 => "Israel",
+        39 => "Italy / Vatican City State",
+        225 => "Ivory Coast",
+        1876 => "Jamaica",
+        81 => "Japan",
+        962 => "Jordan",
+        254 => "Kenya",
+        82 => "Korea (South)",
+        965 => "Kuwait",
+        996 => "Kyrgyzstan",
+        856 => "Lao",
+        371 => "Latvia",
+        961 => "Lebanon",
+        266 => "Lesotho",
+        231 => "Liberia",
+        218 => "Libya",
+        423 => "Liechtenstein",
+        370 => "Lithuania",
+        352 => "Luxembourg",
+        853 => "Macau",
+        389 => "Macedonia",
+        261 => "Madagascar",
+        265 => "Malawi",
+        60 => "Malaysia",
+        960 => "Maldives",
+        223 => "Mali",
+        356 => "Malta",
+        596 => "Martinique",
+        222 => "Mauritania",
+        230 => "Mauritius",
+        269 => "Mayotte Island (Comoros)",
+        52 => "Mexico",
+        373 => "Moldova",
+        377 => "Monaco (Kosovo)",
+        976 => "Mongolia",
+        382 => "Montenegro",
+        1664 => "Montserrat",
+        212 => "Morocco",
+        258 => "Mozambique",
+        95 => "Myanmar",
+        264 => "Namibia",
+        977 => "Nepal",
+        31 => "Netherlands",
+        599 => "Netherlands Antilles",
+        687 => "New Caledonia",
+        64 => "New Zealand",
+        505 => "Nicaragua",
+        227 => "Niger",
+        234 => "Nigeria",
+        47 => "Norway",
+        968 => "Oman",
+        92 => "Pakistan",
+        970 => "Palestine (+970)",
+        9725 => "Palestine (+9725)",
+        507 => "Panama",
+        675 => "Papua New Guinea",
+        595 => "Paraguay",
+        51 => "Peru",
+        63 => "Philippines",
+        48 => "Poland",
+        351 => "Portugal",
+        974 => "Qatar",
+        262 => "Reunion",
+        40 => "Romania",
+        7 => "Russia / Kazakhstan",
+        250 => "Rwanda",
+        1670 => "Saipan",
+        1684 => "Samoa (American)",
+        685 => "Samoa (Western)",
+        378 => "San Marino",
+        882 => "Satellite-Thuraya",
+        966 => "Saudi Arabia",
+        221 => "Senegal",
+        381 => "Serbia",
+        248 => "Seychelles",
+        232 => "Sierra Leone",
+        65 => "Singapore",
+        421 => "Slovakia",
+        386 => "Slovenia",
+        252 => "Somalia",
+        27 => "South Africa",
+        34 => "Spain",
+        94 => "Sri Lanka",
+        1869 => "St. Kitts And Nevis",
+        1758 => "St. Lucia",
+        1784 => "St. Vincent",
+        249 => "Sudan",
+        597 => "Suriname",
+        268 => "Swaziland",
+        46 => "Sweden",
+        41 => "Switzerland",
+        963 => "Syria",
+        886 => "Taiwan",
+        992 => "Tajikistan",
+        255 => "Tanzania",
+        66 => "Thailand",
+        228 => "Togo",
+        676 => "Tonga Islands",
+        1868 => "Trinidad and Tobago",
+        216 => "Tunisia",
+        90 => "Turkey",
+        993 => "Turkmenistan",
+        1649 => "Turks and Caicos Islands",
+        256 => "Uganda",
+        44 => "UK / Isle of Man / Jersey / Guernsey",
+        380 => "Ukraine",
+        971 => "United Arab Emirates",
+        598 => "Uruguay",
+        1 => "USA / Canada / Dominican Rep. / Puerto Rico",
+        998 => "Uzbekistan",
+        678 => "Vanuatu",
+        58 => "Venezuela",
+        84 => "Vietnam",
+        967 => "Yemen",
+        260 => "Zambia",
+        255 => "Zanzibar",
+        263 => "Zimbabwe",
+    );
+}
+
+/**
+ * Converts a string to USC-2 encoding if neccessary.
+ */
+function sms_clubtexting_unicode($message) {
+    if (function_exists('iconv')) {
+        $latin = @iconv('UTF-8', 'ISO-8859-1', $message);
+        if (strcmp($latin, $message)) {
+            $arr = unpack('H*hex', @iconv('UTF-8', 'UCS-2BE', $message));
+            return strtoupper($arr['hex']) . '&unicode=1';
+        }
+    }
+    return FALSE;
+}
+
+/**
+ * Handle incoming messages with sms_incoming()
+ * If the gateway you are integrating with has support for two-way messaging,
+ * you may use sms_incoming() to pass incoming messages into the SMS Framework.
+ * Your gateway module will be the first point of contact for messages coming
+ * in from the gateway. Gateway services pass incoming messages to applications
+ *  in different ways (HTTP GET/POST, SOAP, XML-RPC, etc).
+ * Refer to the API documentation for your gateway service.
+ * After receiving the message and doing any necessary pre-processing,
+ * your module should call sms_incoming().
+ *
+ * Keyword format
+ * 209.160.73.14 - - [30/Apr/2010:17:17:05 +0000] "GET /sms/clubtexting/receivesms?PhoneNumber=2146415465&Message=Bcbs HTTP/1.1" 200 127
+ *
+ * Reply format
+ * 209.160.73.14 - - [04/May/2010:07:56:25 +0000] "GET /sms/clubtexting/receivesms?from=2146415465&message=RE%3A%C3%B675214 HTTP/1.1" 200 -
+ *
+ */
+function sms_clubtexting_incoming_callback() {
+    // keyword parameter format
+    $number = isset($_REQUEST['PhoneNumber']) ? $_REQUEST['PhoneNumber'] : NULL;
+    $message = isset($_REQUEST['Message']) ? $_REQUEST['Message'] : NULL;
+
+    // reply parameter format
+    if (empty($number)) {
+        $number =
+                isset($_REQUEST['from']) ? $_REQUEST['from'] : NULL;
+    }
+    if (empty($message)) {
+        $message =
+                isset($_REQUEST['message']) ? $_REQUEST['message'] : NULL;
+    }
+
+    // handle limited version of twilio incoming also
+    if (empty($number)) {
+        $number =
+                isset($_REQUEST['From']) ? $_REQUEST['From'] : NULL;
+    }
+    $number = substr(trim($number), -10);
+    if (empty($message)) {
+        $message =
+                isset($_REQUEST['Body']) ? $_REQUEST['Body'] : NULL;
+    }
+
+    
+    $options = array();
+
+    watchdog('sms', 'Received from ' . $number . ' [' . $message . ']');
+
+    sms_incoming($number, $message, $options);
+}
+
+/**
+ * Setup path and access control for incoming SMS url
+ */
+function sms_clubtexting_menu() {
+    $items = array();
+    $items['sms/clubtexting/receivesms'] = array(
+        'title' => 'Club Texting SMS message receiver',
+        'page callback' => 'sms_clubtexting_incoming_callback',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+    return $items;
+}

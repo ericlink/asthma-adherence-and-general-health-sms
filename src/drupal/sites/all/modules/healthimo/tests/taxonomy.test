@@ -1,0 +1,114 @@
+<?php
+/**
+ * @file
+ * Test the hfstx module
+ *
+ * http://api.drupal.org/api/drupal/modules--taxonomy--taxonomy.module/6
+ */
+
+class HealthimoTaxonomyTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'healthimo.taxonomy',
+                'description' => 'Taxonomy utility tests',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('healthimo');
+        $vocabulary = array(
+                'name' => 'Program Enrollment',
+                'multiple' => 0,
+                'required' => 0,
+                'hierarchy' => 1,
+                'relations' => 0,
+                'module' => 'healthimo',
+                'weight' => -10,
+        );
+        taxonomy_save_vocabulary($vocabulary);
+        $vocabulary = array(
+                'name' => 'SMS Keywords',
+                'multiple' => 0,
+                'required' => 0,
+                'hierarchy' => 1,
+                'relations' => 0,
+                'module' => 'healthimo',
+                'weight' => -10,
+        );
+        taxonomy_save_vocabulary($vocabulary);
+
+        $edit = array('vid' => 2, 'name' => 'myterm');
+        $status = taxonomy_save_term($edit);
+
+        $term = array(
+                'vid' => 2,
+                'name' => 'keyword',
+        );
+        taxonomy_save_term($term);
+
+
+        $term = array(
+                'name' => 'new term',
+                'vid' => 1,
+                'description' => 'my new term',
+        );
+        taxonomy_save_term($term);
+
+    }
+
+    /**
+     * taxonomy_get_term_by_name
+     * taxonomy_get_vocabularies
+     * SMS Keywords
+     * Program Enrollment
+     */
+    function testSaveVocabulary() {
+        $vocabularies = taxonomy_get_vocabularies();
+        $this->assertEqual( 2, count( $vocabularies ) );
+    }
+
+    function testFindVocabulary() {
+        $vid = healthimo_taxonomy_get_vocabulary_by_name( 'Program Enrollment');
+        $this->assertEqual( 1, $vid );
+        $vid = healthimo_taxonomy_get_vocabulary_by_name( 'SMS Keywords');
+        $this->assertEqual( 2, $vid );
+    }
+
+    function testSaveTerm() {
+        $term = taxonomy_get_term(1);
+        $this->assertTrue($term);
+        $term = taxonomy_get_term(2);
+        $this->assertTrue($term);
+        $term = taxonomy_get_term(3);
+        $this->assertTrue($term);
+        $term = taxonomy_get_term(4);
+        $this->assertFalse($term);
+    }
+
+    function testFindTermByName() {
+        $terms = taxonomy_get_term_by_name('new term');
+        $this->assertEqual( 'new term', $terms[0]->name );
+        $this->assertEqual( 1, count($terms) );
+        
+        $term = healthimo_taxonomy_get_term_by_name('new term');
+        $this->assertEqual( 'new term', $term->name );
+    }
+    
+    function testFindSmsKeywordByName() {
+        // sms keyword
+        $term = healthimo_taxonomy_get_sms_keyword_by_name('keyword');
+        $this->assertEqual( 'keyword', $term->name );
+
+        // not a term in any vocab
+        $term = healthimo_taxonomy_get_sms_keyword_by_name('not a real keyword');
+        $this->assertFalse( $term );
+
+        // not in sms vocab
+        $term = healthimo_taxonomy_get_sms_keyword_by_name('new term');
+        $this->assertFalse( $term );
+
+    }
+
+}

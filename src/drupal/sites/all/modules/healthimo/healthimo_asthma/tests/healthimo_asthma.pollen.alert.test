@@ -1,0 +1,90 @@
+<?php
+/**
+ * @file
+ * Test the asthma module
+ */
+
+define( 'DALLAS_NAB_URL',  "http://www.aaaai.org/nab/index.cfm?p=allergenreport&stationid=37" );
+define( 'TOKEN_VERY_HIGH', 'images/reportveryhigh.gif' );
+define( 'TOKEN_HIGH', 'images/reporthigh.gif' );
+define( 'TOKEN_MODERATE', 'images/reportmoderate.gif' );
+define( 'TOKEN_LOW', 'images/reportlow.gif' );
+define( 'TOKEN_ABSENT', 'ABSENT' );
+
+class AsthmaPollenAlertTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'healthimo_asthma.pollen',
+                'description' => 'pollen alert tests',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('healthimo');
+    }
+
+    function testFetchAndParse() {
+        $page = file_get_contents("http://www.google.com/");
+        $title = between('<title>', '</title>', $page, FALSE);
+        $this->assertEqual( 'Google', $title );
+        $this->assertTrue(true);
+    }
+
+    function testFetchAndParseNabDate() {
+        // make sure date is today
+        $page = file_get_contents(DALLAS_NAB_URL);
+        $item = trim(between('Date:', '</strong></td>', $page, FALSE));
+        $this->pass($item );
+        // put in dynamic date
+        $this->assertEqual( 'June 22, 2010', $item );
+        $this->assertTrue(true);
+    }
+
+    function testFetchAndParseNabGrass() {
+        $page = file_get_contents(DALLAS_NAB_URL);
+        $chunk = trim(between('reportgrass.gif', '</tr>', $page, FALSE));
+        $level = FALSE;
+        if (strpos($chunk, TOKEN_VERY_HIGH) !== FALSE) {
+            $level = 'very high';
+        } else if (strpos($chunk, TOKEN_HIGH) !== FALSE) {
+            $level = 'high';
+        } else if (strpos($chunk, TOKEN_MODERATE) !== FALSE) {
+            $level = 'moderate';
+        } else if (strpos($chunk, TOKEN_LOW) !== FALSE) {
+            $level = 'low';
+        } else if (strpos($chunk, TOKEN_ABSENT) !== FALSE) {
+            $level = 'absent';
+        }
+
+        //build array of each string,
+        //     cap first letter, and before last elem(2nd elem)
+        //count(1) put
+        //count(2) and
+        // 0 just word
+        // == 1  "and " then word
+        // > 1 "," then word
+        // capitalize first letter
+        //            33333 222222 111111111 0
+
+
+        //$message = "Mold, grass, trees and weeds are High. Follow your Action Plan!";
+        //count(3)
+        //$message = High. Follow your Action Plan!";
+        //$message = "Mold, grass, trees and weeds are High. Follow your Action Plan!";
+
+        $this->pass($level);
+        $this->assertTrue(true);
+    }
+    /**
+     *
+     images/reporttree.gif
+     images/reportweeds.gif
+     images/reportgrass.gif
+     images/reportmol.gif
+
+     *
+     */
+
+}

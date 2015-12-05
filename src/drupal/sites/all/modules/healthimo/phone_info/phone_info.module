@@ -1,0 +1,56 @@
+<?php
+
+define('A', 'B');
+
+/**
+ * @file
+ * phone info functionality
+ */
+
+/**
+ * Implementation of hook_info().
+ */
+function phone_info_info() {
+    return array(
+        'phone_info' => array(
+            'name' => 'Phone Information',
+        ),
+    );
+}
+
+function phone_info_menu() {
+    $items = array();
+
+    $items['admin/healthimo/phone_info'] = array(
+        'title' => 'phone info',
+        'description' => 'Configure phone info',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('phone_info_admin_settings_form'),
+        'access arguments' => array('administer healthimo'),
+        'file' => 'phone_info.admin.inc',
+    );
+
+    return $items;
+}
+
+function phone_info_init() {
+    //error_reporting(E_ALL | E_STRICT);
+    error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
+
+    module_load_include('inc', 'phone_info');
+    //module_load_include('inc', 'phone_info', 'phone_info.message_log');
+}
+
+
+/*
+ * Implementation of hook_cron().
+ 
+function phone_info_cron() {
+    watchdog('phone_info', 'hook_cron');
+    if (variable_get('healthimo_phone_info_cron_active', 1)) {
+        watchdog('phone_info', 'hook_cron enabled');
+    } else {
+        watchdog('phone_info', 'hook_cron disabled');
+    }
+}
+*/

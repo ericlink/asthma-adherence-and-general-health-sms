@@ -1,0 +1,125 @@
+<?php
+
+/**
+ * @file
+ * healthimo functionality
+ */
+
+/**
+ * Implementation of hook_info().
+ */
+function healthimo_info() {
+    return array(
+        'healthimo' => array(
+            'name' => 'healthimo',
+        ),
+    );
+}
+
+function healthimo_init() {
+    error_reporting(E_ALL | E_STRICT);
+    module_load_include('inc', 'healthimo', 'healthimo');
+    module_load_include('inc', 'healthimo', 'healthimo.admin');
+    module_load_include('inc', 'healthimo', 'healthimo.date');
+    module_load_include('inc', 'healthimo', 'healthimo.string');
+    module_load_include('inc', 'healthimo', 'healthimo.quicktip');
+    module_load_include('inc', 'healthimo', 'healthimo.taxonomy');
+    module_load_include('inc', 'healthimo', 'healthimo.sms');
+    module_load_include('php', 'healthimo', 'HealthimoInboundMessage');
+    module_load_include('php', 'healthimo', 'HealthimoProcess');
+    //module_load_include('inc', 'healthimo', 'healthimo.message.log');
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function healthimo_perm() {
+    return array('administer healthimo');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function healthimo_menu() {
+    $items = array();
+
+    $items['admin/healthimo'] = array(
+        'title' => 'healthimo',
+        'page callback' => 'system_admin_menu_block_page',
+        'access arguments' => array('administer healthimo'),
+        'position' => 'right',
+        'file' => 'system.admin.inc',
+        'file path' => drupal_get_path('module', 'system'),
+    );
+    $items['admin/healthimo/sms'] = array(
+        'title' => 'sms',
+        'description' => 'healthimo sms module',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('healthimo_sms_form'),
+        'access arguments' => array('administer healthimo'),
+    );
+    $items['admin/healthimo/settings'] = array(
+        'title' => 'settings',
+        'description' => 'Configure healthimo settings',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('healthimo_admin_settings_form'),
+        'access arguments' => array('administer healthimo'),
+        'file' => 'healthimo.admin.inc',
+    );
+    $items['admin/healthimo/reset-admin-user'] = array(
+        'title' => 'reset-admin',
+        'description' => 'Reset admin user',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('healthimo_admin_reset_admin_form'),
+        'access arguments' => array('administer healthimo'),
+        'file' => 'healthimo.admin.inc',
+    );
+    $items['admin/healthimo/wii'] = array(
+        'title' => 'healthimo wii notify',
+        'description' => 'healthimo wii notify',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('healthimo_admin_wii_form'),
+        'access arguments' => array('administer healthimo'),
+        'file' => 'healthimo.admin.inc',
+   );
+
+    /* dev menus */
+    $items['admin/healthimo/dev'] = array(
+        'title' => 'development',
+        'description' => 'healthimo development settings',
+        'page callback' => 'system_admin_menu_block_page',
+        'access arguments' => array('administer healthimo'),
+        'position' => 'right',
+        'file' => 'system.admin.inc',
+        'file path' => drupal_get_path('module', 'system'),
+    );
+
+    /* devel */
+    $items['admin/healthimo/dev/devel'] = array(
+        'title' => 'devel module settings',
+        'description' => 'Helper functions, pages, and blocks to assist Drupal developers. The devel blocks can be managed via the <a href="/admin/build/block">block administration</a> page.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('devel_admin_settings'),
+        'access arguments' => array('administer site configuration'),
+    );
+    /**
+     * SMS Gateway menus for dev
+     */
+    $items['admin/healthimo/dev/sms'] = array(
+        'title' => 'gateway configuration',
+        'description' => 'Configure gateways and chose the default gateway.',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('sms_admin_default_form', NULL),
+        'access arguments' => array('administer smsframework'),
+    );
+
+    $items['admin/healthimo/dev/sms/%'] = array(
+        'title callback' => 'sms_admin_gateway_title',
+        'title arguments' => array(3),
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('sms_admin_gateway_form', 3),
+        'access arguments' => array('administer smsframework'),
+        'type' => MENU_CALLBACK,
+    );
+    return $items;
+}

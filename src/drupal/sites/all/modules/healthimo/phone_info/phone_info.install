@@ -1,0 +1,271 @@
+<?php
+
+/**
+ * @file
+ *   Provides the (un)installation logic for the phone info module.
+ */
+
+/**
+ * Implementation of hook_schema().
+ * @return the schema definition array.
+ * */
+function phone_info_schema() {
+    $schema = array();
+
+    $schema['phone_info_sms_gateway_types'] = array(
+        'description' => 'Gateway information',
+        'fields' => array(
+            'gid' => array(
+                'type' => 'serial',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'Primary Key: sequence',
+            ),
+            'created' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'updated' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'machine_name' => array(
+                'type' => 'varchar',
+                'not null' => TRUE,
+                'length' => 255,
+                'description' => 'String for unique lookup id',
+            ),
+            'clubtexting_string' => array(
+                'type' => 'varchar',
+                'not null' => TRUE,
+                'length' => 255,
+                'description' => 'String to map to club texting return values',
+            ),
+            'smtp_gateway_domain' => array(
+                'type' => 'varchar',
+                'not null' => TRUE,
+                'length' => 255,
+                'description' => 'xyz.com gateway domain name',
+            ),
+        ),
+        'primary key' => array('gid'),
+        'unique keys' => array(
+            'machine_name' => array('machine_name'),
+        ),
+    );
+
+    $schema['phone_info_phone_number'] = array(
+        'description' => 'Master list of phone numbers that we may have information on',
+        'fields' => array(
+            'pid' => array(
+                'type' => 'serial',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'Primary Key: sequence',
+            ),
+            'created' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'updated' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'processed' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'Set after successful info lookup',
+            ),
+            'phone' => array(
+                'type' => 'varchar',
+                'not null' => TRUE,
+                'length' => 255,
+                'description' => 'Normalized phone number',
+            ),
+            'is_wireless' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'wireless or landline number indicator',
+            ),
+            'gid' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'smtp gateway id for this number',
+            ),
+        ),
+        'primary key' => array('pid'),
+        'unique keys' => array(
+            'phone' => array('phone'),
+        ),
+    );
+
+    $schema['phone_info_clubtexting_info'] = array(
+        'description' => 'Information returned from club texting',
+        'fields' => array(
+            'pid' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'Primary Key: pid surrogate key',
+            ),
+            'created' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'updated' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'carrier' => array(
+                'type' => 'varchar',
+                'not null' => TRUE,
+                'length' => 255,
+                'description' => 'Carrier string returned',
+            ),
+        ),
+        'primary key' => array('pid'),
+    );
+    $schema['phone_info_cloudvox_info'] = array(
+        'description' => 'Information returned from cloud vox',
+        'fields' => array(
+            'pid' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+                'description' => 'Primary Key: pid surrogate key',
+            ),
+            'created' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'updated' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => TRUE,
+            ),
+            'geo_precision' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => FALSE,
+            ),
+            'npa' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => FALSE,
+            ),
+            'nxx' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => FALSE,
+            ),
+            'carrier_ocn' => array(
+                'type' => 'int',
+                'unsigned' => TRUE,
+                'not null' => FALSE,
+            ),
+            'ratecenter' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'contaminations' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'current_on' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'city' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'lng' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'lat' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'access_type' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'available_on' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'region' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'effective_on' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'carrier_name' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'ratecenter_formatted' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'status' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'country' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+            'assigned_on' => array(
+                'type' => 'varchar',
+                'not null' => FALSE,
+                'length' => 255,
+            ),
+        ),
+        'primary key' => array('pid'),
+    );
+
+    return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function phone_info_install() {
+    drupal_install_schema('phone_info');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function phone_info_uninstall() {
+    drupal_uninstall_schema('phone_info');
+}
+

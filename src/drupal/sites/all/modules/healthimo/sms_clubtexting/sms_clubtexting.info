@@ -1,0 +1,10 @@
+name = "Club Texting SMS Gateway"
+description = "Club Texting gateway for SMS Framework"
+package = healthimo
+dependencies[] = sms
+core = 6.x
+version = "6.x-1.0"
+core = "6.x"
+project = "healthimo"
+datestamp = "1271013682"
+

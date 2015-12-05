@@ -1,0 +1,55 @@
+<?php
+/**
+ * @file
+ * Test the hfstx module
+ */
+
+class HfstxSendTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'hfstx.send.inc',
+                'description' => 'send.inc tests',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('hfstx');
+    }
+
+
+    function testSendEmailToNonEmailAddress() {
+        $account = new StdClass();
+        $account->mail = '2146415465';
+        $account->name = 'eric';
+        $message_log = $this->getDefaultLog();
+        $rc = hfstx_send_to_email($account, $message_log);
+        $this->assertTrue($rc);
+        $message_log->mid = 1;
+        $loaded_log = hfstx_message_log_load($message_log);
+        //if ( !DEBUG) {
+            $this->assertTrue(empty($loaded_log));
+        //}
+    }
+    function testSendEmailToValidEmailAddress() {
+        $account = new StdClass();
+        $account->mail = 'test@healthimo.com';
+        $account->name = 'eric';
+        $message_log = $this->getDefaultLog();
+        $rc = hfstx_send_to_email($account, $message_log);
+        $this->assertTrue($rc);
+        $message_log->mid = 1;
+        $loaded_log = hfstx_message_log_load($message_log);
+        $this->assertEqual(1, $loaded_log->mid);
+    }
+    function getDefaultLog() {
+        return hfstx_message_log_get_default(
+                4,  1, 'my addy',
+                'my msg', 1,
+                1, 0, 'none'
+        );
+    }
+}
+
+

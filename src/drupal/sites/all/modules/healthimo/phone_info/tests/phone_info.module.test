@@ -1,0 +1,77 @@
+<?php
+
+/**
+ * @file
+ * Test the phone info module
+ */
+class PhoneInfoModuleTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+            'name' => 'phone_info.module',
+            'description' => 'get_sms_email_address',
+            'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        //parent::setUp('healthimo');
+        // support existing database prefixes. if we didn't,
+        // the prefix would be set as '', causing failures.
+        $this->originalPrefix = $GLOBALS['db_prefix'];
+    }
+
+    function tearDown() {
+
+    }
+
+    function testPhoneInfoGetInfo() {
+        $phone_info = phone_info_phone_number_load('2146415465');
+        $this->assertTrue($phone_info);
+        $this->assertEqual('2146415465', $phone_info->phone);
+        $phone_info = phone_info_get_info('2146415465');
+        $this->assertTrue($phone_info);
+        $this->assertEqual('2146415465', $phone_info->phone);
+        $this->assertTrue($phone_info->is_wireless);
+        $this->assertEqual('myboostmobile.com', $phone_info->smtp_address);
+        $this->pass($phone_info->smtp_address);
+    }
+
+    function testValidatePhoneNumber() {
+        $this->assertEqual('2146415465', phone_info_normalize_phone_number('2146415465'));
+        $this->assertEqual('2146415465', phone_info_normalize_phone_number('12146415465'));
+        $this->assertTrue(phone_info_normalize_phone_number('2146415465'));
+        $this->assertFalse(phone_info_normalize_phone_number('1'));
+        $this->assertFalse(phone_info_normalize_phone_number('+12146415465'));
+        $this->assertTrue(phone_info_normalize_phone_number('12146415465'));
+        $this->assertTrue(phone_info_normalize_phone_number('12146415465'));
+    }
+
+    function testPhoneNumberLoad() {
+        $phone_info = phone_info_phone_number_load('2146415465');
+        $this->assertEqual('2146415465', $phone_info->phone);
+        $this->pass($phone_info->phone);
+    }
+//
+//    function testCloudvoxLookup() {
+//        $phone_info = new stdClass();
+//        $phone_info->phone = '2146415465';
+//        $phone_info->pid = 1;
+//        $cloudvox_info = phone_info_cloudvox_info_lookup($phone_info);
+//        $this->assertTrue($cloudvox_info);
+//        $this->pass($cloudvox_info->status);
+//        $this->pass($cloudvox_info->pid);
+//        $this->assertEqual(0, strcmp('wireless', $cloudvox_info->access_type));
+//    }
+//
+//    function testClubtextingLookup() {
+//        $phone_info = new stdClass();
+//        $phone_info->phone = '2146415465';
+//        $phone_info->pid = 1;
+//        $clubtexting_info = phone_info_clubtexting_info_lookup($phone_info);
+//        $this->assertTrue($clubtexting_info);
+//        $this->pass($clubtexting_info->carrier);
+//        $this->pass($clubtexting_info->pid);
+//    }
+
+}

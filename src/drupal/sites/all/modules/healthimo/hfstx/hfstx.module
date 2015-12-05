@@ -1,0 +1,99 @@
+<?php
+
+/**
+ * @file
+ * hfstx functionality
+ */
+
+/**
+ * Implementation of hook_info().
+ */
+function hfstx_info() {
+    return array(
+        'hfstx' => array(
+            'name' => 'Healthy Families of South Texas',
+        ),
+    );
+}
+
+
+function hfstx_menu() {
+    $items = array();
+
+    $items['admin/healthimo/hfstx'] = array(
+        'title' => 'hfstx',
+        'description' => 'Configure healthimo hfstx',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('hfstx_admin_settings_form'),
+        'access arguments' => array('administer healthimo'),
+        'file' => 'hfstx.admin.inc',
+    );
+
+    return $items;
+}
+
+/**
+ * Turn off caching for this module, for sms incoming GET requests
+ */
+function hfstx_init() {
+    error_reporting(E_ALL | E_STRICT);
+    $GLOBALS['conf']['cache'] = FALSE;
+    module_load_include('inc', 'hfstx');
+    module_load_include('inc', 'hfstx', 'hfstx.message');
+    module_load_include('inc', 'hfstx', 'hfstx.message_log');
+    module_load_include('inc', 'hfstx', 'hfstx.inbound');
+    module_load_include('inc', 'hfstx', 'hfstx.outbound');
+    module_load_include('inc', 'hfstx', 'hfstx.send');
+}
+
+/**
+ * Implementation of hook_sms_incoming().
+ */
+//function healthimo_sms_incoming($op, $number, $message, $options = array()) {
+//
+//function hfstx_sms_incoming($op, $number, $message) {
+//    global $user;
+//    switch ($op) {
+//        case 'pre process':
+//            //sms_user_authenticate($number);
+//            break;
+//        case 'process':
+//            healthimo_log('hook_sms_incoming.process ' . $number . ' [' . $message . ']');
+//            hfstx_process_incoming_sms($user, $number, $message);
+//            break;
+//        case 'post process':
+//            //sms_user_logout();
+//            break;
+//    }
+//}
+
+/*
+ * Implementation of hook_cron().
+ * 
+ * 
+ * manage cron timeout
+  //(limit n)?  must stay in the cron timeout, so do small frequently
+  // count rows processed in loops and bail if hit n rows in each?
+  // 2 loops == 2*n == total possible
+  /// **** is this an issue if we run cron via a script?
+  // or increase the request timeout to x minutes?
+ *
+ * notify support where hfstx_message_log.procssed = null
+  // or just a query that reports on unprocessed + drupal errors?
+  //   this will have to be cron so doesn't not run because this breaks
+  //        $result = hfstx_find_candidate_messaged_users();
+  //        while ($row = db_fetch_object($result)) {
+  //            if ( hfstx_is_time_to_send_another_message($row->uid) ) {
+  //                hfstx_message_user($row->uid);
+  //            }
+  //        }
+ */
+
+function hfstx_cron() {
+    watchdog('hfstx', 'hook_cron');
+    $usersMessaged = 0;
+    if (variable_get('hfstx_cron_active', 1)) {
+        $usersMessaged = hfstx_send_outbound_messages();
+    }
+    watchdog('hfstx', 'hook_cron %d users messaged', array('%d' => $usersMessaged));
+}

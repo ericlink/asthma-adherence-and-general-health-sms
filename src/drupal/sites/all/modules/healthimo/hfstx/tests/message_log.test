@@ -1,0 +1,316 @@
+<?php
+/**
+ * @file
+ * Test the hfstx module
+ */
+
+class HfstxMessageLogTestCase extends DrupalWebTestCase {
+
+    public static function getInfo() {
+        return array(
+                'name' => 'hfstx.message.log',
+                'description' => 'crud',
+                'group' => 'healthimo',
+        );
+    }
+
+    function setUp() {
+        parent::setUp('hfstx');
+    }
+
+    function testMessageLogSave() {
+        $message_log = $this->getDefaultLog();
+
+        hfstx_message_log_save($message_log);
+        $this->assertEqual(1, 1);
+    }
+
+    function testMessageLogUpdate() {
+        $message_log = $this->getDefaultLog();
+
+        $this->assertEqual(0,$message_log->mid);
+        $this->assertNotNull($message_log->created);
+        $this->assertEqual(0,$message_log->updated);
+        $oldUpdated = $message_log->updated;
+        $message_log = hfstx_message_log_save($message_log);
+        $this->assertNotNull($message_log->created);
+        $this->assertEqual(1, $message_log->mid);
+        $this->assertNotEqual($oldUpdated, $message_log->updated);
+        $this->assertNotNull($message_log->updated);
+
+        $oldUpdated = $message_log->updated;
+        $message_log = hfstx_message_log_save($message_log);
+        $this->assertEqual(1, $message_log->mid);
+        //fails because date not to millisecond so equal
+        ///$this->assertNotEqual($oldUpdated, $message_log->updated);
+
+        $message_log = hfstx_message_log_load($message_log);
+        $this->assertEqual(1, $message_log->mid);
+        $this->assertNotEqual(0, $message_log->updated);
+        $this->assertNotNull($message_log->created);
+    }
+
+    function testMessageLogLoad() {
+        $message_log = $this->getDefaultLog();
+        $message_log = hfstx_message_log_save($message_log);
+        $savedMid = $message_log->mid;
+        $message_log = hfstx_message_log_load($message_log->mid);
+        $this->assertEqual($savedMid, $message_log->mid);
+    }
+
+    function testMessageLogSentCount() {
+        // one inbound and one outbound record
+        $message_log = $this->getDefaultLog();
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = $this->getDefaultLog();
+        $message_log->outbound = 0;
+        $message_log = hfstx_message_log_save($message_log);
+
+        $sent_count = hfstx_message_log_count_sent(4);
+        $this->assertTrue($sent_count);
+        $this->assertEqual(1, $sent_count);
+
+        $message_log = $this->getDefaultLog();
+        $message_log = hfstx_message_log_save($message_log);
+
+        $sent_count = hfstx_message_log_count_sent(4);
+        $this->assertTrue($sent_count);
+        $this->assertEqual(2, $sent_count);
+
+        $sent_count = hfstx_message_log_count_sent(5);
+        //returns 0 for none, same as false
+        $this->assertFalse($sent_count);
+        $this->assertEqual(0, $sent_count);
+    }
+
+    function testMessageLogReceivedCount() {
+        // one inbound and one outbound record
+        $message_log = $this->getDefaultLog();
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = $this->getDefaultLog();
+        $message_log->outbound = 0;
+        $message_log = hfstx_message_log_save($message_log);
+
+        $sent_count = hfstx_message_log_count_received(4);
+        $this->assertTrue($sent_count);
+        $this->assertEqual(1, $sent_count);
+
+        $message_log = $this->getDefaultLog();
+        $message_log->outbound = 0;
+        $message_log = hfstx_message_log_save($message_log);
+
+        $sent_count = hfstx_message_log_count_received(4);
+        $this->assertTrue($sent_count);
+        $this->assertEqual(2, $sent_count);
+
+        $sent_count = hfstx_message_log_count_received(5);
+        //returns 0 for none, same as false
+        $this->assertFalse($sent_count);
+        $this->assertEqual(0, $sent_count);
+    }
+
+
+    function testMessageMostRecentSent() {
+        // one inbound and one outbound record
+        $created = time();
+        $createdFirst = time();
+
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 0;
+        $message_log = hfstx_message_log_save($message_log);
+
+        $message_log = hfstx_message_log_load_most_recent_sent(4);
+        $this->assertEqual($created, $message_log->created);
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_sent(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $message_log = hfstx_message_log_load_most_recent_sent(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_sent(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log = hfstx_message_log_save($message_log);
+        $mid_saved = $message_log->mid;
+        $message_log = hfstx_message_log_load_most_recent_sent(4);
+        $mid_found = $message_log->mid;
+
+        $this->assertEqual($mid_saved, $mid_found);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $message_log = hfstx_message_log_load_most_recent_sent(5);
+        $this->assertFalse($message_log);
+    }
+
+    function testMessageMostRecentRequestTwoLogsSameCreated() {
+       // one inbound and two (matching created) outbound records
+        $created = time();
+        $createdFirst = time();
+
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 0;
+        $message_log = hfstx_message_log_save($message_log);
+
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $mid_saved = $message_log->mid;
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        // keep latest two the same for this test
+        // $created++;
+        $createdLast = $created;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $mid_found = $message_log->mid;
+        // picks up the first of the two that match
+        $this->assertEqual($mid_saved, $mid_found);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $message_log = hfstx_message_log_load_most_recent_request(5);
+        $this->assertFalse($message_log);
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 0;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($createdLast, $message_log->created);
+        $this->assertNotEqual($created, $message_log->created);
+    }
+
+    function testMessageMostRecentRequest() {
+        // one inbound and one outbound record
+        $created = time();
+        $createdFirst = time();
+
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 0;
+        $message_log = hfstx_message_log_save($message_log);
+
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $created++;
+        $createdLast = $created;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 1;
+        $message_log = hfstx_message_log_save($message_log);
+        $mid_saved = $message_log->mid;
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $mid_found = $message_log->mid;
+
+        $this->assertEqual($mid_saved, $mid_found);
+        $this->assertEqual($created, $message_log->created);
+        $this->assertNotEqual($createdFirst, $created );
+
+        $message_log = hfstx_message_log_load_most_recent_request(5);
+        $this->assertFalse($message_log);
+
+        $created++;
+        $message_log = $this->getDefaultLog();
+        $message_log->created = $created;
+        $message_log->outbound = 1;
+        $message_log->response_expected = 0;
+        $message_log = hfstx_message_log_save($message_log);
+        $message_log = hfstx_message_log_load_most_recent_request(4);
+        $this->assertEqual($createdLast, $message_log->created);
+        $this->assertNotEqual($created, $message_log->created);
+        
+    }
+
+    function getDefaultLog() {
+        return hfstx_message_log_get_default(
+                4,  1, 'my addy',
+                'my msg', 1,
+                1, 0, 'none'
+        );
+    }
+}
+
+

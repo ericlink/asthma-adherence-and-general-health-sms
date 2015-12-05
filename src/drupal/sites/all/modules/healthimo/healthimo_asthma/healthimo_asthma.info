@@ -1,0 +1,12 @@
+name = "healthimo asthma"
+description = "healthimo asthma module"
+package = healthimo
+dependencies[] = sms
+dependencies[] = messaging
+dependencies[] = healthimo
+core = 6.x
+version = "6.x-1.0"
+core = "6.x"
+project = "healthimo"
+datestamp = "1276629038"
+

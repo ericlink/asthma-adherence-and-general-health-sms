@@ -1,0 +1,13 @@
+name=Simplenews Statistics Path
+description=Records click paths for visitors brought to the site using simplenews
+package=Mail
+core=6.x
+dependencies[]=simplenews_statistics
+
+; $Id: simplenews_statistics_path.info,v 1.1.2.2 2009/07/29 20:11:51 jrglasgow Exp $
+; Information added by drupal.org packaging script on 2009-08-04
+version = "6.x-1.1"
+core = "6.x"
+project = "simplenews_statistics_path"
+datestamp = "1249358765"
+

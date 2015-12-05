@@ -1,0 +1,205 @@
+<?php
+// $Id: simplenews_statistics_path.module,v 1.1.2.2.2.2 2009/08/04 04:01:36 jrglasgow Exp $
+
+/**
+ * @file
+ *
+ * Records click paths for visitors brought to the site using simplenews
+ */
+
+/**
+ * Implementation of hook_init().
+ *
+ * Check to see is this is the start of a new click path and create a path ID
+ * If this is an existing path record the page and time.
+ */
+function simplenews_statistics_path_init() {
+  // create an $args array
+  $args = array();
+  $count = 0;
+  while ($arg = arg($count)) {
+    $args[$count] = $arg;
+    $count++;
+  }
+  if (simplenews_statistics_path_start_path($args)) {
+    // we have created the path id and put it into the session
+    return '';
+  }
+  else {
+    if (isset($_SERVER['HTTP_REFERER']) && isset($_SESSION['simplenews_statistics_path_id'])) {
+      // because there is a referrer and there is a path_id we need to record this page view
+      $sql = "
+        REPLACE INTO
+          {simplenews_statistics_path_path_clicks}
+        SET
+          path_id='%s',
+          path='%s',
+          time=%d
+      ";
+      $sql_args = array(
+        $_SESSION['simplenews_statistics_path_id'],
+        base_path() . implode('/', $args),
+        time(),
+      );
+      db_query($sql, $sql_args);
+    }
+    else if (!isset($_SERVER['HTTP_REFERER']) && !isset($_SERVER['REDIRECT_QUERY_STRING'])){
+      // there is no referrer, so they must have come directly from the page
+      // instead of a link, there also no redirect query so they weren't
+      // redirected from the click redirect page
+      unset($_SESSION['simplenews_statistics_path_id']);
+    }
+  }
+}
+
+/**
+ * check to see if a new path needs to be started, if so start the path in the
+ * database and set the path_id in the session
+ */
+function simplenews_statistics_path_start_path($args) {
+  if ($args == array('simplenews', 'statistics', 'click') && isset($_GET['mail'])) {
+    // we have the start of a new path
+    $mail = $_GET['mail'];
+    $nid = $_GET['nid'];
+    $url = $_GET['url'];
+    $path_ID = md5($mail .'-'. $nid .'-'. $url .'-'. time());
+    $_SESSION['simplenews_statistics_path_id'] = $path_ID;
+    $sql = "
+      REPLACE INTO
+        {simplenews_statistics_path_paths}
+      SET
+        mail='%s',
+        path_id='%s',
+        nid='%d',
+        url='%s'
+    ";
+    $sql_args = array(
+      $mail,
+      $path_ID,
+      $nid,
+      $url,
+    );
+    db_query($sql, $sql_args);
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function simplenews_statistics_path_menu() {
+  $items = array();
+  $items['admin/content/simplenews/statistics/%node/paths'] = array(
+    'title' => 'Newsletter Paths',
+    'page callback' => 'simplenews_statistics_path_display_newsletter_paths',
+    'page arguments' => array(4),
+    'access arguments' => array('administer newsletters'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['admin/content/simplenews/statistics/path/%'] = array(
+    'title' => 'Newsletter Paths',
+    'page callback' => 'simplenews_statistics_path_display_newsletter_path',
+    'page arguments' => array(5),
+    'access arguments' => array('administer newsletters'),
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * given the node object, display a table listing all the paths for the given
+ * newsletter with links to pages that give full data on the paths
+ */
+function simplenews_statistics_path_display_newsletter_paths($node) {
+  $sql = "
+    SELECT
+      *,
+      COUNT(*) count
+    FROM
+      {simplenews_statistics_path_paths} paths
+    JOIN
+      {simplenews_statistics_path_path_clicks} clicks ON clicks.path_id=paths.path_id
+    WHERE
+      paths.nid=%d
+    GROUP BY
+      paths.path_id
+  ";
+  $sql_args = array(
+    $node->nid,
+  );
+  $result = db_query($sql, $sql_args);
+  $table_rows = array();
+  while ($row = db_fetch_object($result)) {
+    $url = explode('?', $row->url);
+    $table_rows[] = array(
+      $row->mail,
+      l($url[0], $url[0]),
+      $row->count,
+      l(t('View Details'), 'admin/content/simplenews/statistics/path/'. $row->path_id),
+    );
+  }
+  $headers = array(
+    t('e-mail'),
+    t('Destination URL'),
+    t('Path Length'),
+    '',
+  );
+  if (!empty($table_rows)) {
+    return theme('table', $headers, $table_rows);
+  }
+  else {
+    return t('There are currently no paths for this newsletter.');
+  }
+}
+
+/**
+ * display the clicks for a specific path
+ */
+function simplenews_statistics_path_display_newsletter_path($path_id) {
+  $sql = "
+    SELECT
+      *
+    FROM
+      {simplenews_statistics_path_paths} paths
+    JOIN
+      {simplenews_statistics_path_path_clicks} clicks ON clicks.path_id=paths.path_id
+    WHERE
+      paths.path_id=%d
+  ";
+  $sql_args = array(
+    $path_id,
+  );
+  $result = db_query($sql, $sql_args);
+  $table_rows = array();
+  $count = 0;
+  while ($row = db_fetch_object($result)) {
+    if ($count == 0) {
+      $url = explode('?', $row->url);
+      $table_rows[] = array(
+        $url[0],
+        format_date($row->time),
+      );
+    }
+    $count++;
+    //drupal_set_message('$row = <pre>'. print_r($row, TRUE) .'</pre>');
+    $url = explode('?', $row->url);
+    $table_rows[] = array(
+      $row->path,
+      format_date($row->time, 'long'),
+    );
+    $mail = $row->mail;
+  }
+  $headers = array(
+    t('Page'),
+    t('time'),
+  );
+  if (!empty($table_rows)) {
+    return t('e-mail: @mail<br/>', array('@mail' => $mail)) . theme('table', $headers, $table_rows);
+  }
+  else {
+    return t('This path is empty.');
+  }
+}

@@ -1,0 +1,10 @@
+name = "Parsing API"
+description = "Exposes new functions called before(), after(), between(), and multi_between() that developers can use to parse out any kind of text."
+package = "Parsing API"
+core=6.x
+; Information added by drupal.org packaging script on 2010-04-08
+version = "6.x-1.9"
+core = "6.x"
+project = "parsing_api"
+datestamp = "1270750567"
+

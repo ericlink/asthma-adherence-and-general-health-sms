@@ -1,0 +1,11 @@
+name = "Phone Info"
+description = "Phone Number information (wireless, land line, etc)"
+package = healthimo
+dependencies[] = sms
+dependencies[] = sms_clubtexting
+dependencies[] = healthimo
+version = "6.x-1.0"
+core = "6.x"
+project = "healthimo"
+datestamp = "1291584586"
+
