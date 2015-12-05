@@ -1,7 +1,7 @@
 # asthma-adherence-sms
 
 
-# Asthma medication adherence and education via SMS messaging.  Also general health education via SMS.
+## Asthma medication adherence and education via SMS messaging.  Also general health education via SMS.
 
 * Enroll by short code
 * Asks questions to discover areas of interest
